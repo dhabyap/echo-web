@@ -9,7 +9,9 @@ import { Topbar } from "@/components/Topbar";
 import type { SearchResult, Track } from "@/domain/types";
 
 function SearchContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
+
+  const { play } = usePlayerStore();
   const initialQuery = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult | null>(null);

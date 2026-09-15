@@ -14,7 +14,10 @@ const tabs = [
 ];
 
 export default function LibraryLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname: string = usePathname() ?? "";
+
+
+
 
   // Find active tab
   const activeHref = tabs.find((t) => pathname.startsWith(t.href))?.href || "/library/browse";
