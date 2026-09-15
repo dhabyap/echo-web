@@ -2,6 +2,8 @@
 // Called as /.netlify/functions/invidious/<endpoint>
 // Forwards request to a public Invidious instance and returns JSON response.
 
+const fetch = (...args) => globalThis.fetch(...args);
+
 exports.handler = async function(event, context) {
   const basePath = '/.netlify/functions/invidious';
   let path = event.path;
@@ -16,13 +18,14 @@ exports.handler = async function(event, context) {
     const resp = await fetch(target);
     // If Invidious returns an error (e.g., 5xx), treat as empty response to avoid breaking the app
     if (!resp.ok) {
+      console.error('Invidious error', resp.status, resp.statusText);
       return {
         statusCode: 200,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ error: `Invidious error ${resp.status}` }),
       };
     }
     const data = await resp.text();
