@@ -3,8 +3,23 @@ import type { MusicProvider } from "./provider";
 
 const PROVIDER = "youtube";
 
-// Simple caching for stream URLs
 const streamCache = new Map<string, string>();
+
+// Use Netlify function proxy instead of direct Invidious URL
+const INVIDIOUS_INSTANCES = [
+  "/.netlify/functions/invidious",
+];
+
+async function fetchFromInstances(endpoint: string) {
+  for (const base of INVIDIOUS_INSTANCES) {
+    try {
+      const resp = await fetch(`${base}${endpoint}`);
+      if (resp.ok) return await resp.json();
+    } catch {}
+  }
+  throw new Error("All Invidious instances failed");
+}
+
 
 function mapArtist(item: any): Artist {
   const channelId = (item.author?.channelId) ?? (item.channelId) ?? "unknown";
@@ -42,8 +57,8 @@ export class YoutubeProvider implements MusicProvider {
 
   async getTrack(id: string): Promise<Track> {
     const videoId = id.replace(/^yt-t-/, "");
-    const resp = await fetch(`https://invidious.snopyta.org/api/v1/videos/${videoId}`);
-    const data = await resp.json();
+    // Use Invidious instances for track details
+    const data = await fetchFromInstances(`/api/v1/videos/${videoId}`);
     return mapTrack(data);
   }
 
@@ -64,12 +79,22 @@ export class YoutubeProvider implements MusicProvider {
     if (!rawId) return { url: "" };
     const cached = streamCache.get(rawId);
     if (cached) return { url: cached };
-    const resp = await fetch(`https://invidious.snopyta.org/api/v1/videos/${rawId}`);
-    const data = await resp.json();
-    const format = (data?.adaptiveFormats ?? data?.formatStreams ?? []).find((f: any) => f.type?.includes("audio"));
-    const url = format?.url ?? "";
-    if (url) streamCache.set(rawId, url);
-    return { url };
+    // Try Invidious instances first
+    try {
+      const data = await fetchFromInstances(`/api/v1/videos/${rawId}`);
+      const format = (data?.adaptiveFormats ?? data?.formatStreams ?? []).find((f: any) => f.type?.includes("audio"));
+      const url = format?.url ?? "";
+      if (url) streamCache.set(rawId, url);
+      return { url };
+    } catch {
+      // Fallback to ytdl-core (client‑side) if Invidious fails
+      const { default: ytdl } = await import('ytdl-core');
+      const info = await ytdl.getInfo(rawId);
+      const format = info.formats.find((f: any) => f.audioBitrate && f.mimeType?.includes('audio'));
+      const url = format?.url ?? '';
+      if (url) streamCache.set(rawId, url);
+      return { url };
+    }
   }
 }
 

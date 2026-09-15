@@ -348,6 +348,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(queue, nextIdx);
       updateMediaSessionMetadata(track);
 
+      // Use proxy for Invidious to avoid CORS
       const provider = getProvider(providerName);
       fetchAndPlay(provider, track, get().volume);
     },
@@ -373,6 +374,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(queue, index);
       updateMediaSessionMetadata(track);
 
+      // Use proxy for Invidious to avoid CORS
       const provider = getProvider(providerName);
       fetchAndPlay(provider, track, get().volume);
     },
@@ -391,6 +393,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(queue, index);
       updateMediaSessionMetadata(track);
 
+      // Use proxy for Invidious to avoid CORS
       const provider = getProvider(providerName);
       fetchAndPlay(provider, track, get().volume);
     },
