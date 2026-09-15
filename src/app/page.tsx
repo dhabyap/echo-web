@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { mockProvider } from "@/domain/mock-provider";
-import { deezerProvider } from "@/domain/deezer-provider";
+import { youtubeProvider } from "@/domain/youtube-provider";
 import { usePlayerStore } from "@/store/player-store";
 import { HorizontalCard } from "@/components/HorizontalCard";
 import { TrackCard } from "@/components/TrackCard";
@@ -14,10 +14,10 @@ const sectionNumbers = ["01", "02", "03", "04"];
 export default function Home() {
   const [feed, setFeed] = useState<HomeFeed | null>(null);
   const play = usePlayerStore((s) => s.play);
-  const useMock = usePlayerStore((s) => s.useMock);
+  const useMock = usePlayerStore((s) => s.providerName !== "deezer");
 
   useEffect(() => {
-    const provider = useMock ? mockProvider : deezerProvider;
+    const provider = useMock ? mockProvider : youtubeProvider;
     provider.getHome().then(setFeed).catch(() => {
       // Fall back to mock on error
       mockProvider.getHome().then(setFeed);

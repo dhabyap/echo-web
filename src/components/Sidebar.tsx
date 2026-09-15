@@ -23,7 +23,7 @@ const libraryItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const playlists = mockProvider.getPlaylists();
-  const useMock = usePlayerStore((s) => s.useMock);
+  const useMock = usePlayerStore((s) => s.providerName !== "deezer");
   const toggleProvider = usePlayerStore((s) => s.toggleProvider);
 
   return (

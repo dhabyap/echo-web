@@ -21,11 +21,20 @@ import {
 } from "@/lib/local-storage";
 import { mockProvider } from "@/domain/mock-provider";
 import { deezerProvider } from "@/domain/deezer-provider";
+import { youtubeProvider } from "@/domain/youtube-provider";
 import type { MusicProvider } from "@/domain/provider";
 
-/** Resolve current provider from useMock flag */
-function getProvider(useMock: boolean): MusicProvider {
-  return useMock ? mockProvider : deezerProvider;
+/** Resolve current provider from providerName flag */
+function getProvider(providerName: string): MusicProvider {
+  switch (providerName) {
+    case "youtube":
+      return youtubeProvider;
+    case "deezer":
+      return deezerProvider;
+    case "mock":
+    default:
+      return mockProvider;
+  }
 }
 
 export type PlayerStore = {
@@ -43,7 +52,7 @@ export type PlayerStore = {
   recentlyPlayed: Track[];
   audioReady: boolean;
   favoriteIds: string[];
-  useMock: boolean;
+  providerName: "mock" | "deezer" | "youtube";
 
   // Actions
   initAudio: () => void;
@@ -149,7 +158,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     recentlyPlayed: loadRecentlyPlayed(),
     audioReady: false,
     favoriteIds: savedFavoriteIds,
-    useMock: false,
+    providerName: "youtube",
 
     restoreState: () => {
       const { queue, index } = loadQueue();
@@ -165,7 +174,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       }
     },
 
-    toggleProvider: () => set((s) => ({ useMock: !s.useMock })),
+    toggleProvider: () => set((s) => ({ providerName: s.providerName === "mock" ? "deezer" : s.providerName === "deezer" ? "youtube" : "mock" })),
 
     initAudio: () => {
       if (audioEngine.isInitialized) return;
@@ -274,7 +283,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(newQueue, newIdx);
       saveRecentlyPlayed(get().recentlyPlayed);
 
-      const provider = getProvider(get().useMock);
+      // Resolve provider based on stored name
+    const provider = getProvider(get().providerName);
+
       fetchAndPlay(provider, track, get().volume);
     },
 
@@ -283,7 +294,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     },
 
     resume: () => {
-      const { currentTrack, queue, queueIndex, status, useMock } = get();
+      const { currentTrack, queue, queueIndex, status, providerName } = get();
       if (status === "paused" && currentTrack) {
         audioEngine.resume();
       } else if (currentTrack) {
@@ -318,7 +329,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     },
 
     next: () => {
-      const { queue, queueIndex, shuffle, repeat, useMock } = get();
+      const { queue, queueIndex, shuffle, repeat, providerName } = get();
       const nextIdx = pickNextIndex(queue, queueIndex, shuffle, repeat);
       if (nextIdx === null) {
         set({ status: "idle" });
@@ -337,12 +348,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(queue, nextIdx);
       updateMediaSessionMetadata(track);
 
-      const provider = getProvider(useMock);
+      const provider = getProvider(providerName);
       fetchAndPlay(provider, track, get().volume);
     },
 
     previous: () => {
-      const { queue, queueIndex, currentTimeMs, useMock } = get();
+      const { queue, queueIndex, currentTimeMs, providerName } = get();
       const { index, restart } = pickPrevIndex(queue, queueIndex, currentTimeMs);
 
       if (restart) {
@@ -362,12 +373,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(queue, index);
       updateMediaSessionMetadata(track);
 
-      const provider = getProvider(useMock);
+      const provider = getProvider(providerName);
       fetchAndPlay(provider, track, get().volume);
     },
 
     playTrackAtIndex: (index) => {
-      const { queue, useMock } = get();
+      const { queue, providerName } = get();
       if (index < 0 || index >= queue.length) return;
       const track = queue[index];
       set({
@@ -380,7 +391,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       saveQueue(queue, index);
       updateMediaSessionMetadata(track);
 
-      const provider = getProvider(useMock);
+      const provider = getProvider(providerName);
       fetchAndPlay(provider, track, get().volume);
     },
 

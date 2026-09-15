@@ -8,7 +8,7 @@ export function Topbar() {
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const useMock = usePlayerStore((s) => s.useMock);
+  const useMock = usePlayerStore((s) => s.providerName !== "deezer");
   const toggleProvider = usePlayerStore((s) => s.toggleProvider);
 
   useEffect(() => { setMounted(true); }, []);
