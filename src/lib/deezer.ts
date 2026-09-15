@@ -4,7 +4,10 @@
  * No auth required. CORS is open from browsers.
  */
 
-const BASE = "https://api.deezer.com";
+const BASE = "/.netlify/functions/deezer";
+
+
+
 
 export class DeezerApiError extends Error {
   constructor(
