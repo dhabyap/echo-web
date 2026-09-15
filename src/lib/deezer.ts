@@ -43,10 +43,20 @@ export async function fetchDeezer<T>(endpoint: string): Promise<T> {
   }
 
   let json: unknown;
-  try {
-    json = await res.json();
-  } catch {
-    throw new DeezerApiError(`Malformed JSON from ${endpoint}`);
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    try {
+      json = await res.json();
+    } catch {
+      throw new DeezerApiError(`Malformed JSON from ${endpoint}`);
+    }
+  } else {
+    const text = await res.text();
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new DeezerApiError(`Unexpected response format from ${endpoint}`);
+    }
   }
 
   return json as T;

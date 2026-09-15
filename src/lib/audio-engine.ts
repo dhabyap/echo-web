@@ -103,6 +103,11 @@ class AudioEngine {
       this._audio.pause();
     }
 
+    // Ensure CORS for cross-origin audio (Deezer preview)
+    if (this._audio) {
+      this._audio.crossOrigin = "anonymous";
+    }
+    // Existing code
     this._audio.src = url;
     this._audio.load();
 
