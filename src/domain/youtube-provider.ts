@@ -7,17 +7,25 @@ const streamCache = new Map<string, string>();
 
 // Use Netlify function proxy instead of direct Invidious URL
 const INVIDIOUS_INSTANCES = [
-  "/.netlify/functions/invidious",
+  "https://invidious.snopyta.org",
+  "https://invidious.kavin.rocks",
+  "https://yewtu.be",
+  "https://invidious.fdn.vn",
 ];
 
 async function fetchFromInstances(endpoint: string) {
+  const errors: string[] = [];
   for (const base of INVIDIOUS_INSTANCES) {
     try {
       const resp = await fetch(`${base}${endpoint}`);
       if (resp.ok) return await resp.json();
-    } catch {}
+      errors.push(`${base}: ${resp.status}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`${base}: ${msg}`);
+    }
   }
-  throw new Error("All Invidious instances failed");
+  throw new Error(`All Invidious instances failed: ${errors.join(', ')}`);
 }
 
 
