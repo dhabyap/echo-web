@@ -14,6 +14,17 @@ exports.handler = async function(event, context) {
   const target = `https://invidious.snopyta.org${path}${query}`;
   try {
     const resp = await fetch(target);
+    // If Invidious returns an error (e.g., 5xx), treat as empty response to avoid breaking the app
+    if (!resp.ok) {
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({}),
+      };
+    }
     const data = await resp.text();
     return {
       statusCode: resp.status,
@@ -25,7 +36,11 @@ exports.handler = async function(event, context) {
     };
   } catch (err) {
     return {
-      statusCode: 500,
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
       body: JSON.stringify({ error: err.message }),
     };
   }
