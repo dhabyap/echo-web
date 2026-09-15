@@ -5,6 +5,7 @@
 const INVIDIOUS_INSTANCES = [
   'https://invidious.snopyta.org',
   'https://invidious.kavin.rocks',
+  'https://yewtu.be',
   'https://invidious.fdn.vn',
 ];
 

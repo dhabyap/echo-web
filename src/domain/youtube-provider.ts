@@ -7,10 +7,7 @@ const streamCache = new Map<string, string>();
 
 // Use Netlify function proxy instead of direct Invidious URL
 const INVIDIOUS_INSTANCES = [
-  "https://invidious.snopyta.org",
-  "https://invidious.kavin.rocks",
-  "https://yewtu.be",
-  "https://invidious.fdn.vn",
+  "/.netlify/functions/invidious",
 ];
 
 async function fetchFromInstances(endpoint: string) {
@@ -55,9 +52,9 @@ function mapTrack(item: any): Track {
 }
 
 export class YoutubeProvider implements MusicProvider {
-  // Use public Invidious instance – no auth, works client‑side
+  // Use public Invidious instance – no auth, works through Netlify proxy
   async search(query: string): Promise<SearchResult> {
-    const resp = await fetch(`https://invidious.snopyta.org/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+    const resp = await fetch(`/.netlify/functions/invidious/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
     const data = (await resp.json()) as any[];
     const tracks: Track[] = data.map(mapTrack);
     return { tracks, albums: [], artists: [], playlists: [] };
