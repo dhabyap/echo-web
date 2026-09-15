@@ -2,10 +2,7 @@
 // Called as /.netlify/functions/invidious/<endpoint>
 // Forwards request to a public Invidious instance and returns JSON response.
 
-const fetch = require('node-fetch');
-
 exports.handler = async function(event, context) {
-  // Netlify passes full request path, e.g. '/.netlify/functions/invidious/api/v1/videos/mt1'
   const basePath = '/.netlify/functions/invidious';
   let path = event.path;
   if (path.startsWith(basePath)) {
