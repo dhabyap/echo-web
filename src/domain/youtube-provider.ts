@@ -1,34 +1,30 @@
 import type { Album, Artist, HomeFeed, SearchResult, Track, PlaybackSource } from "./types";
 import type { MusicProvider } from "./provider";
-import ytdl from "ytdl-core";
-import ytSearch from "yt-search";
 
 const PROVIDER = "youtube";
 
 // Simple caching for stream URLs
 const streamCache = new Map<string, string>();
 
-function mapArtist(video: any): Artist {
-  const channelId = (video.author?.channel_id) || (video.author?.channelId) || (video.channelId) || "unknown";
+function mapArtist(item: any): Artist {
+  const channelId = (item.author?.channelId) ?? (item.channelId) ?? "unknown";
   return {
     id: `yt-a-${channelId}`,
-    name: video.author?.name ?? video.channel?.name ?? "Unknown",
+    name: item.author?.name ?? item.channel?.name ?? "Unknown",
     provider: PROVIDER,
     providerArtistId: channelId,
   };
 }
 
-function mapTrack(video: any): Track {
-  const videoId = video.videoId || video.id?.videoId || "";
-  const artist = mapArtist(video);
+function mapTrack(item: any): Track {
+  const videoId = item.id ?? item.videoId;
+  const artist = mapArtist(item);
   return {
     id: `yt-t-${videoId}`,
-    title: video.title ?? "Untitled",
+    title: item.title ?? "Untitled",
     artists: [artist],
-    durationMs: video.duration?.seconds
-      ? video.duration.seconds * 1000
-      : undefined,
-    thumbnailUrl: video.thumbnail?.url,
+    durationMs: item.lengthSeconds ? item.lengthSeconds * 1000 : undefined,
+    thumbnailUrl: item.thumbnailUrl ?? item.videoThumbnails?.[0]?.url,
     provider: PROVIDER,
     providerTrackId: videoId,
     playable: true,
@@ -36,48 +32,30 @@ function mapTrack(video: any): Track {
 }
 
 export class YoutubeProvider implements MusicProvider {
+  // Use public Invidious instance – no auth, works client‑side
   async search(query: string): Promise<SearchResult> {
-    const results = await ytSearch(query);
-    const videos = results.videos ?? [];
-    const tracks: Track[] = videos.map(mapTrack);
+    const resp = await fetch(`https://invidious.snopyta.org/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+    const data = (await resp.json()) as any[];
+    const tracks: Track[] = data.map(mapTrack);
     return { tracks, albums: [], artists: [], playlists: [] };
   }
 
   async getTrack(id: string): Promise<Track> {
     const videoId = id.replace(/^yt-t-/, "");
-    const info = await ytdl.getInfo(videoId);
-    const video = info.videoDetails;
-    return mapTrack({
-      videoId,
-      title: video.title,
-      author: { name: video.author?.name },
-      duration: { seconds: Math.floor(parseInt(video.lengthSeconds)) },
-      thumbnail: { url: video.thumbnails?.[video.thumbnails.length - 1]?.url },
-      channelId: (video.author as any)?.channelId ?? (video.author as any)?.id,
-    });
+    const resp = await fetch(`https://invidious.snopyta.org/api/v1/videos/${videoId}`);
+    const data = await resp.json();
+    return mapTrack(data);
   }
 
   async getAlbum(id: string): Promise<Album> {
-    // YouTube does not have album concept; return empty placeholder
-    return {
-      id: `yt-al-${id}`,
-      title: "YouTube Album",
-      artists: [],
-    } as Album;
+    return { id: `yt-al-${id}`, title: "YouTube Album", artists: [] } as Album;
   }
 
   async getArtist(id: string): Promise<Artist> {
-    // Not directly supported; return minimal info
-    return {
-      id: `yt-a-${id}`,
-      name: "YouTube Artist",
-      provider: PROVIDER,
-      providerArtistId: id,
-    } as Artist;
+    return { id: `yt-a-${id}`, name: "YouTube Artist", provider: PROVIDER, providerArtistId: id } as Artist;
   }
 
   async getHome(): Promise<HomeFeed> {
-    // No dedicated home feed; return empty
     return {} as HomeFeed;
   }
 
@@ -86,17 +64,12 @@ export class YoutubeProvider implements MusicProvider {
     if (!rawId) return { url: "" };
     const cached = streamCache.get(rawId);
     if (cached) return { url: cached };
-    try {
-      const info = await ytdl.getInfo(rawId);
-      const format = info.formats.find(
-        (f) => f.audioBitrate && f.mimeType?.includes("audio")
-      );
-      const url = format?.url ?? "";
-      if (url) streamCache.set(rawId, url);
-      return { url };
-    } catch {
-      return { url: "" };
-    }
+    const resp = await fetch(`https://invidious.snopyta.org/api/v1/videos/${rawId}`);
+    const data = await resp.json();
+    const format = (data?.adaptiveFormats ?? data?.formatStreams ?? []).find((f: any) => f.type?.includes("audio"));
+    const url = format?.url ?? "";
+    if (url) streamCache.set(rawId, url);
+    return { url };
   }
 }
 
