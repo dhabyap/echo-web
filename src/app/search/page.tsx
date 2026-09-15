@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { mockProvider } from "@/domain/mock-provider";
+import { deezerProvider } from "@/domain/deezer-provider";
 import { youtubeProvider } from "@/domain/youtube-provider";
 import { usePlayerStore } from "@/store/player-store";
 import { Topbar } from "@/components/Topbar";
@@ -16,8 +17,12 @@ function SearchContent() {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult | null>(null);
   const [activeTab, setActiveTab] = useState<"tracks" | "albums" | "artists" | "playlists">("tracks");
-  const useMock = usePlayerStore((s) => s.providerName !== "deezer");
-  const provider = useMock ? mockProvider : youtubeProvider;
+  const provider = usePlayerStore((s) => {
+      const { providerName } = s;
+      if (providerName === 'youtube') return youtubeProvider;
+    if (providerName === 'deezer') return deezerProvider;
+    return mockProvider;
+    });
 
 
   const doSearch = useCallback(async (q: string) => {
